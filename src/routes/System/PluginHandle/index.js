@@ -37,6 +37,7 @@ export default class PluginHandle extends Component {
     super(props);
     this.state = {
       currentPage: 1,
+      pageSize: 12,
       selectedRowKeys: [],
       pluginDict: [],
       popup: "",
@@ -47,18 +48,18 @@ export default class PluginHandle extends Component {
   }
 
   componentWillMount = async () => {
-    this.loadPluginDict();
+    await this.loadPluginDict();
 
     this.initPluginColumns();
 
     this.query()
   }
 
-  componentDidUpdate() {
+  componentDidUpdate = async () => {
     const { language } = this.props;
     const { localeName } = this.state;
     if (language !== localeName) {
-      this.loadPluginDict();
+      await this.loadPluginDict();
       this.initPluginColumns();
       this.changeLocale(language);
     }
@@ -69,14 +70,14 @@ export default class PluginHandle extends Component {
    */
   query = () => {
     const {dispatch} = this.props;
-    const {pluginId, field, currentPage} = this.state;
+    const {pluginId, field, currentPage, pageSize} = this.state;
     dispatch({
       type: "pluginHandle/fetch",
       payload: {
         pluginId,
         field,
         currentPage,
-        pageSize: 12
+        pageSize
       }
     });
   };
@@ -84,9 +85,9 @@ export default class PluginHandle extends Component {
   /**
    * load plugin drop dict
    */
-  loadPluginDict = () => {
+  loadPluginDict = async () => {
     const {dispatch} = this.props;
-    dispatch({
+    await dispatch({
       type: "pluginHandle/fetchPluginList",
     });
     this.setState({pluginDict: this.props.pluginHandle.pluginDropDownList})
@@ -94,6 +95,10 @@ export default class PluginHandle extends Component {
 
   pageOnchange = page => {
     this.setState({ currentPage: page },this.query);
+  };
+
+  onShowSizeChange = (currentPage,pageSize) => {
+    this.setState({ currentPage: 1,pageSize }, this.query);
   };
 
   /**
@@ -118,7 +123,7 @@ export default class PluginHandle extends Component {
 
   editClick = record => {
     const { dispatch } = this.props;
-    const { currentPage } = this.state;
+    const { currentPage,pageSize } = this.state;
     this.loadPluginDict()
     const pluginDropDownList = this.state.pluginDict
     dispatch({
@@ -166,7 +171,7 @@ export default class PluginHandle extends Component {
                   },
                   fetchValue: {
                     currentPage,
-                    pageSize: 12
+                    pageSize
                   },
                   callback: () => {
                     this.closeModal(true);
@@ -184,7 +189,7 @@ export default class PluginHandle extends Component {
   };
 
   addClick = () => {
-    const {currentPage} = this.state;
+    const {currentPage,pageSize} = this.state;
     this.loadPluginDict()
     const pluginDropDownList = this.state.pluginDict
     this.setState({
@@ -219,7 +224,7 @@ export default class PluginHandle extends Component {
               },
               fetchValue: {
                 currentPage,
-                pageSize: 12
+                pageSize
               },
               callback: () => {
                 this.closeModal(true);
@@ -240,7 +245,7 @@ export default class PluginHandle extends Component {
 
   deleteClick = () => {
     const { dispatch } = this.props;
-    const { currentPage, selectedRowKeys } = this.state;
+    const { currentPage, pageSize, selectedRowKeys } = this.state;
     if (selectedRowKeys && selectedRowKeys.length > 0) {
       dispatch({
         type: "pluginHandle/delete",
@@ -249,7 +254,7 @@ export default class PluginHandle extends Component {
         },
         fetchValue: {
           currentPage,
-          pageSize: 12
+          pageSize
         },
         callback: () => {
           this.setState({ selectedRowKeys: [],currentPage:1 },this.query);
@@ -455,7 +460,7 @@ export default class PluginHandle extends Component {
   render() {
     const {pluginHandle, loading} = this.props;
     const {pluginHandleList, total, pluginDropDownList} = pluginHandle;
-    const {currentPage, selectedRowKeys, pluginId, field, popup, columns = []} = this.state;
+    const {currentPage, pageSize, selectedRowKeys, pluginId, field, popup, columns = []} = this.state;
 
 
     const tableColumns = columns.map((col, index) => ({
@@ -544,8 +549,12 @@ export default class PluginHandle extends Component {
           rowSelection={rowSelection}
           pagination={{
             total,
+            showTotal: (showTotal) => `${showTotal}`,
+            showSizeChanger: true,
+            pageSizeOptions: ["12", "20", "50", "100"],
             current: currentPage,
-            pageSize: 12,
+            pageSize,
+            onShowSizeChange: this.onShowSizeChange,
             onChange: this.pageOnchange
           }}
         />
